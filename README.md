@@ -1,5 +1,7 @@
 # Recall Room
 
+[Open Recall Room](https://recall-room-mwilzvpa.minty-anole-5187.chatgpt.site/) (private, ChatGPT sign-in required)
+
 A flashcard web app with FSRS-6 scheduling, account-based sync, and Anki package import. The interface uses native HTML controls and browser defaults. Anki archive and SQLite code loads only when an import starts.
 
 ## Build
