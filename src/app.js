@@ -78,8 +78,11 @@ async function save(change, message, closeEditor = false) {
   } finally {busy = false}
 }
 
+function deckNames() {
+  return [...new Set(state.cards.map(card=>card.deck))].sort((a,b)=>a.localeCompare(b,'ko'))
+}
 function deckSelect() {
-  const options = [...new Set(state.cards.map(card=>card.deck))].sort((a,b)=>a.localeCompare(b,'ko'))
+  const options = deckNames()
   const select = node('select',{'aria-label':'덱 선택',onchange:event=>{deck=event.target.value;revealed=null;render()}},
     node('option',{value:''},'모든 덱'),...options.map(option=>node('option',{value:option},option)))
   select.value = deck
@@ -129,10 +132,23 @@ const field = (name, input) => node('label',{},name,input)
 function cards() {
   screen.append(node('h1',{},'카드'),node('div',{class:'bar'},p(state.cards.length+'장','tags'),deckSelect()))
   const editing = state.cards.find(card=>card.id===editId)
+  const names = deckNames()
+  if (!names.length) names.push('기본')
+  const newDeckInput = node('input',{name:'newDeck',maxlength:120,disabled:''})
+  const newDeckField = node('div',{hidden:''},field('새 덱 이름',newDeckInput))
+  const deckPicker = node('select',{name:'deck',onchange:event=>{
+    const creating = event.target.value === ''
+    newDeckField.hidden = !creating
+    newDeckInput.disabled = !creating
+    newDeckInput.required = creating
+    if (creating) newDeckInput.focus()
+  }},...names.map(name=>node('option',{value:name},name)),node('option',{value:''},'새 덱 만들기'))
+  deckPicker.value = editing?.deck || (names.includes(deck) ? deck : names.includes('기본') ? '기본' : names[0])
   const form = node('form',{class:'panel',onsubmit:event=>{
     event.preventDefault()
     const data = new FormData(event.currentTarget)
-    const front = data.get('front').trim(), back = data.get('back').trim(), name = data.get('deck').trim()
+    const front = data.get('front').trim(), back = data.get('back').trim()
+    const name = data.get('deck') || data.get('newDeck')?.trim()
     if (!front || !back || !name) {signal('앞면, 뒷면, 덱을 입력해 주세요.');return}
     save(collection=>{
       const card = collection.cards.find(item=>item.id===editId)
@@ -140,7 +156,7 @@ function cards() {
       else collection.cards.push({id:crypto.randomUUID(),front,back,deck:name,schedule:fresh(),history:[]})
     },editing?'카드를 수정했어요.':'카드를 추가했어요.',true)
   }},node('h2',{},editing?'카드 편집':'새 카드'),
-  field('덱',node('input',{name:'deck',required:'',value:editing?.deck || deck || '기본',maxlength:120})),
+  field('덱',deckPicker),newDeckField,
   field('앞면',node('textarea',{name:'front',required:'',maxlength:5000},editing?.front ?? '')),
   field('뒷면',node('textarea',{name:'back',required:'',maxlength:5000},editing?.back ?? '')),
   node('div',{class:'row'},node('button',{class:'primary',type:'submit'},editing?'변경 저장':'카드 추가'),
