@@ -13,9 +13,6 @@
   "type": "module",
   "dependencies": {
     "esbuild": "^0.28.2",
-    "fflate": "^0.8.3",
-    "fzstd": "^0.1.1",
-    "sql.js": "^1.16.0",
     "ts-fsrs": "^6.0.0"
   }
 }

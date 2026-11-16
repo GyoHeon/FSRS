@@ -6,7 +6,7 @@ export default {
     const url = new URL(request.url)
     if (url.pathname === '/') {
       return new Response(html, {headers: {...noStore, 'Content-Type': 'text/html; charset=utf-8',
-        'Content-Security-Policy': "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'none'; object-src 'none'; base-uri 'none'"}})
+        'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'none'; object-src 'none'; base-uri 'none'"}})
     }
     if (Object.hasOwn(assets, url.pathname)) {
       return new Response(assets[url.pathname], {headers: {
@@ -28,7 +28,7 @@ export default {
     let data
     try {data = JSON.parse(body)} catch {return json(null, 400)}
     const {revision, collection} = data ?? {}
-    if (!Number.isSafeInteger(revision) || revision < 0 || !Array.isArray(collection?.cards) || !collection?.settings) return json(null, 400)
+    if (!Number.isSafeInteger(revision) || revision < 0 || !Array.isArray(collection?.cards)) return json(null, 400)
     const payload = JSON.stringify(collection)
     const result = revision === 0
       ? await env.DB.prepare('INSERT INTO collections (user_id, revision, payload) VALUES (?, 1, ?) ON CONFLICT DO NOTHING').bind(user, payload).run()

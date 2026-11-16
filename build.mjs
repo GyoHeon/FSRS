@@ -4,7 +4,7 @@ import { basename } from 'node:path'
 
 const bundle = await build({
   entryPoints: {app:'src/app.js'}, bundle:true, format:'esm', splitting:true,
-  external:['node:fs','node:crypto'], outdir:'assets', entryNames:'[name]-[hash]',
+  outdir:'assets', entryNames:'[name]-[hash]',
   write:false, minify:true
 })
 const entry = bundle.outputFiles.find(output => basename(output.path).startsWith('app-'))

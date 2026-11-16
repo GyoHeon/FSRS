@@ -1,4 +1,4 @@
-import {day, defaults, fresh, scheduler} from './schedule.js'
+import {fresh, scheduler} from './schedule.js'
 
 const screen = document.querySelector('#screen')
 const status = document.querySelector('#status')
@@ -34,7 +34,7 @@ async function fetchCollection() {
   const data = await res.json()
   if (revision !== undefined && revision !== data.revision) revealed = null
   revision = data.revision
-  state = data.collection ?? {settings:{...defaults}, cards:[]}
+  state = data.collection ?? {cards:[]}
   return true
 }
 async function refresh(quiet = false) {
@@ -104,7 +104,7 @@ function review() {
     return
   }
   panel.append(p(card.back,'answer'))
-  const engine = scheduler(state.settings)
+  const engine = scheduler
   const now = new Date()
   const options = engine.repeat(card.schedule,now)
   const grades = phrase.map((label,index)=>{
@@ -119,7 +119,7 @@ function grade(id, rating) {
   return save(collection=>{
     const target = collection.cards.find(card=>card.id===id)
     const now = new Date()
-    const {card} = scheduler(collection.settings).next(target.schedule,now,rating)
+    const {card} = scheduler.next(target.schedule,now,rating)
     target.schedule=card
     target.history.push({at:+now,grade:rating,interval:card.scheduled_days,due:card.due})
   },'복습 기록을 저장했어요.')
@@ -154,49 +154,11 @@ function cards() {
   }
   screen.append(form,node('div',{class:'panel'},node('h2',{},'카드 목록'),list))
 }
-function settings() {
-  screen.append(node('h1',{},'설정'))
-  const form = node('form',{class:'panel',onsubmit:event=>{
-    event.preventDefault()
-    const fields = new FormData(event.currentTarget)
-    const next = {retention:+fields.get('retention'),max:+fields.get('max'),learn:fields.get('learn'),relearn:fields.get('relearn'),weights:fields.get('weights')}
-    const valid = str=>!str.trim() || /^(?:[1-9]\d*[mhd])(?:\s+[1-9]\d*[mhd])*$/.test(str.trim())
-    let weights = next.weights.trim().split(/[,\s]+/).map(Number)
-    if (!valid(next.learn) || !valid(next.relearn) || (next.weights.trim() && (weights.length!==21 || !weights.every(Number.isFinite)))) {
-      signal('학습 단계는 1m 10m 형식, FSRS-6 가중치는 숫자 21개를 입력해 주세요.');return
-    }
-    save(collection=>{scheduler(next).repeat(fresh(),new Date());collection.settings=next},'FSRS 설정을 저장했어요. 새 복습부터 적용돼요.')
-  }},node('h2',{},'FSRS-6'),
-  node('div',{class:'grid'},
-    field('목표 기억률 (%)',node('input',{type:'number',min:70,max:99,name:'retention',value:state.settings.retention,required:''})),
-    field('최대 간격 (일)',node('input',{type:'number',min:1,max:36500,name:'max',value:state.settings.max,required:''})),
-    field('학습 단계',node('input',{name:'learn',value:state.settings.learn})),
-    field('재학습 단계',node('input',{name:'relearn',value:state.settings.relearn}))),
-  field('FSRS-6 가중치 (비우면 기본값)',node('textarea',{name:'weights'},state.settings.weights)),
-  node('button',{class:'primary',type:'submit'},'설정 저장'))
-  const file = node('input',{type:'file',accept:'.apkg,.colpkg'})
-  const importer = node('div',{class:'panel'},node('h2',{},'Anki 가져오기'),
-    p('학습 기록을 포함해 내보낸 .apkg 또는 .colpkg를 선택하세요. 일반 텍스트와 기본 빈칸 카드의 복습 기록을 가져옵니다. 미디어와 사용자 지정 템플릿은 지원하지 않아요.','muted'),field('Anki 파일',file),
-    button('가져오기',()=>{
-      const selected = file.files[0]
-      if (!selected) {signal('Anki 파일을 먼저 선택해 주세요.');return}
-      let message = ''
-      save(async collection=>{
-        const {readAnki} = await import('./import.js')
-        const result = await readAnki(selected,collection.settings)
-        const ids = new Set(collection.cards.map(card=>card.id))
-        const additions = result.cards.filter(card=>!ids.has(card.id))
-        collection.cards.push(...additions)
-        message = additions.length+'장을 가져왔어요. 기존 카드 '+(result.cards.length-additions.length)+'장, 지원하지 않는 카드 '+result.skipped+'장을 건너뛰었어요.'
-      },()=>message)
-    },'primary'))
-  screen.append(form,importer)
-}
 function render() {
   if (!state) return
   screen.replaceChildren()
   document.querySelectorAll('nav button').forEach(item=>item.setAttribute('aria-current',String(item.dataset.view===view)))
-  ;({review,cards,settings})[view]()
+  ;({review,cards})[view]()
   scheduleRefresh()
 }
 function navigate(next) {
