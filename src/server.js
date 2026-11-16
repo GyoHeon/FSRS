@@ -6,11 +6,11 @@ export default {
     const url = new URL(request.url)
     if (url.pathname === '/') {
       return new Response(html, {headers: {...noStore, 'Content-Type': 'text/html; charset=utf-8',
-        'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'none'; object-src 'none'; base-uri 'none'"}})
+        'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'"}})
     }
     if (Object.hasOwn(assets, url.pathname)) {
       return new Response(assets[url.pathname], {headers: {
-        'Content-Type': 'text/javascript; charset=utf-8',
+        'Content-Type': url.pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8',
         'Cache-Control': 'private, max-age=31536000, immutable'
       }})
     }
